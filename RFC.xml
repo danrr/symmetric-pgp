@@ -184,14 +184,14 @@
             </t>
             <ul spacing="normal">
                 <li>A one-octet symmetric cipher</li>
-                <li>A SHA2-256 hash of the first 32 octets of the private key fields</li>
+                <li>A SHA2-256 hash of the last 32 octets of the private key fields</li>
             </ul>
             <t>
                 The private key information is composed of:
             </t>
             <ul spacing="normal">
-                <li>A 32 octet random value used exclusively to generate the public hash value</li>
-                <li>Symmetric key material of appropriate length for the chosen cipher"</li>
+                <li>Symmetric key material of appropriate length for the chosen cipher</li>
+                <li>A 32 octet random value used exclusively to generate the public hash value"</li>
             </ul>
              <t>
                 "5.6.8 Algorithm-Specific Part for HMAC Keys
@@ -201,14 +201,14 @@
             </t>
             <ul spacing="normal">
                 <li>A one-octet hash algorithm</li>
-                <li>A SHA2-256 hash of the first 32-octet value of the private key fields</li>
+                <li>A SHA2-256 hash of the last 32-octet value of the private key fields</li>
             </ul>
             <t>
                 The private key information is composed of:
             </t>
             <ul spacing="normal">
-                <li>A 32-octet random value used exclusively to generate the public hash value</li>
-                <li>Symmetric key material of appropriate length for the chosen cipher"</li>
+                <li>Symmetric key material of appropriate length for the chosen cipher</li>
+                <li>A 32-octet random value used exclusively to generate the public hash value"</li>
             </ul>
             <t>
                 As the secret key material is required for all cryptographic operations with symmetric keys, implementations
