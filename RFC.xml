@@ -1,0 +1,355 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!-- This template is for creating an Internet Draft using xml2rfc,
+    which is available here: http://xml.resource.org. -->
+<!DOCTYPE rfc SYSTEM "rfc2629-xhtml.ent">
+<?xml-stylesheet type='text/xsl' href='rfc2629.xslt' ?>
+<!-- used by XSLT processors -->
+<!-- For a complete list and description of processing instructions (PIs),
+    please see http://xml.resource.org/authoring/README.html. -->
+<rfc
+        xmlns:xi="http://www.w3.org/2001/XInclude"
+        category="std"
+        docName="draft-ietf-openpgp-symmetric-encryption"
+        ipr="trust200902"
+        obsoletes=""
+        updates="4880bis"
+        submissionType="IETF"
+        xml:lang="en"
+        tocInclude="true"
+        tocDepth="4"
+        symRefs="true"
+        sortRefs="true"
+        consensus="true"
+        version="3">
+    <!-- xml2rfc v2v3 conversion 2.38.1 -->
+    <!-- category values: std, bcp, info, exp, and historic
+      ipr values: trust200902, noModificationTrust200902, noDerivativesTrust200902,
+         or pre5378Trust200902
+      you can add the attributes updates="NNNN" and obsoletes="NNNN"
+      they will automatically be output with "(if approved)" -->
+
+    <!-- ***** FRONT MATTER ***** -->
+
+    <front>
+        <!-- The abbreviated title is used in the page header - it is only necessary if the
+            full title is longer than 39 characters -->
+
+<title abbrev="Symmetric-Key Cryptography in OpenPGP">Symmetric-Key Cryptography in OpenPGP</title>
+        <seriesInfo name="Internet-Draft" value="draft-ietf-openpgp-symmetric-encryption"/>
+        <author fullname="Dan Ristea" initials="D." role="editor" surname="Ristea">
+            <organization>Proton Technologies AG</organization>
+            <address>
+                <postal>
+                    <street>Chemin du Pre de Fleuri 3</street>
+                    <code>1228</code>
+                    <city>Plan les Ouates</city>
+                    <country>Switzerland</country>
+                </postal>
+                <!-- uri and facsimile elements may also be added -->
+            </address>
+        </author>
+        <author fullname="Daniel Huigens" initials="D." surname="Huigens">
+            <organization>Proton Technologies AG</organization>
+            <address>
+                <postal>
+                    <street>Chemin du Pre de Fleuri 3</street>
+                    <code>1228</code>
+                    <city>Plan les Ouates</city>
+                    <country>Switzerland</country>
+                </postal>
+                <!-- uri and facsimile elements may also be added -->
+            </address>
+        </author>
+        <author fullname="Dr Philipp Jovanovic" initials="P" surname="Jovanovic">
+            <organization>University College London</organization>
+            <address>
+                <postal>
+                    <street>Gower Street</street>
+                    <code>WC1E 6BT</code>
+                    <city>London</city>
+                    <country>United Kingdom</country>
+                </postal>
+                <!-- uri and facsimile elements may also be added -->
+            </address>
+        </author>
+        <date year="2020"/>
+        <!-- If the month and year are both specified and are the current ones, xml2rfc will fill
+            in the current day for you. If only the current year is specified, xml2rfc will fill
+         in the current day and month for you. If the year is not the current one, it is
+         necessary to specify at least a month (xml2rfc assumes day="1" if not specified for the
+         purpose of calculating the expiry date).  With drafts it is normally sufficient to
+         specify just the year. -->
+
+        <!-- Meta-data Declarations -->
+
+        <area>General</area>
+        <workgroup>Internet Engineering Task Force</workgroup>
+
+        <keyword>OpenPGP</keyword>
+        <keyword>symmetric</keyword>
+        <keyword>encryption</keyword>
+
+        <abstract>
+            <t>
+                This document defines an extension to the OpenPGP standard to support persistent
+                symmetric keys, used for message encryption and for authentication with message authentication codes.
+                Symmetric cryptography can be used in contexts that do not require asymmetric cryptographic algorithms,
+                such as data storage, for improved performance, lower key sizes, and resistance to quantum computing.
+                Symmetric algorithms already defined by the standard are re-used and this proposal introduces
+                no additional symmetric algorithms or packet types. It extends the definition of Secret-Key Packets,
+                Public-Key Encrypted Session Key Packets, and Signature Packets to support symmetric operations.
+            </t>
+        </abstract>
+    </front>
+    <middle>
+        <section numbered="true" toc="default">
+            <name>Introduction</name>
+            <t>The OpenPGP standard <xref target="RFC4880" format="default">RFC 4880</xref>
+                has supported symmetric encryption for data packets using session keys since its inception, as well as
+                symmetric encryption using password-derived keys. This proposal extends the use of symmetric cryptography
+                by adding support for persistent symmetric keys which can be used to symmetrically encrypt session keys.
+                This proposal uses authenticated encryption with associated data (AEAD) as proposed by
+                <xref target="I-D.ietf-openpgp-rfc4880bis" format="default">RFC 4880bis</xref>.
+            </t>
+            <t>
+                The OpenPGP standard supports the use of digital signatures for authentication and integrity but no
+                similar symmetric mechanism exists in the standard. With the introduction of persistent symmetric keys,
+                this proposals also introduces messages authentication codes (MAC) as a symmetric counterpart to digital
+                signatures. Specifically, this proposal uses hash-based message authentication (HMAC) to ensure the 
+                integrity of stored data.
+            </t>
+            <t>
+                This document describes the changes required to extend the use of symmetric-key cryptography to the
+                encryption of session keys and HMAC-based authentication.</t>
+        </section>
+        <section numbered="true" toc="default">
+            <name>Conventions Used in This Document</name>
+            <t>
+                The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL NOT",
+                "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and "OPTIONAL" in this
+                document are to be interpreted as described in
+                <xref target="RFC2119" format="default">RFC 2119</xref>. Any
+                implementation that adheres to the format and methods specified in
+                this document is called a compliant application. Compliant
+                applications are a subset of the broader set of OpenPGP applications
+                described in <xref target="RFC4880" format="default">RFC 4880</xref>
+                and <xref target="I-D.ietf-openpgp-rfc4880bis" format="default">RFC 4880bis</xref>. Any
+                <xref target="RFC2119" format="default">RFC 2119</xref>
+                keyword within this document applies to compliant applications only.
+            </t>
+        </section>
+        <section numbered="true" toc="default">
+            <name>Motivation</name>
+            <t>
+                When compared to asymmetric cryptography, symmetric cryptography can provide increased performance and
+                equivalent security with shorter keys. In contexts that do not require asymmetric cryptography, such as
+                secure data storage where the same user encrypts and decrypts data, symmetric cryptography can be used
+                to take advantage of its benefits.
+            </t>
+            <t>
+                Additionally, symmetric algorithms included in OpenPGP are vulnerable to attacks possible on quantum computers
+                <xref target="Shor" format="default">Shor</xref>. The development of quantum-secure asymmetric
+                cryptography is an area of active research <xref target="NIST" format="default">NIST</xref>. Symmetric
+                cryptography is also affected by quantum computing but to a lesser extent which can be countered using
+                larger keys <xref target="Grover" format="default">Grover</xref>. Quantum-secure asymmetric encryption
+                will be required to secure communications but proactive measures to protect OpenPGP-encrypted storage
+                can be taken by introducing persistent symmetric keys, which can be used to re-encrypt storage.
+            </t>
+        </section>
+        <section numbered="true" toc="default">
+            <name>Persistent symmetric-key management</name>
+            <t> To allow for symmetric keys to be stored, generic symmetric algorithm values are added to list of
+                public-key algorithms.
+            </t>
+            <t>
+                This document extends section 9.1. "Public-Key Algorithms" to include:
+            </t>
+            <ul spacing="normal">
+                <li>25: authenticated encryption with associated data (AEAD)</li>
+                <li>26: hash-based message authentication code (HMAC)</li>
+            </ul>
+
+            <t>Allow values 25 and 26 to be used to denote the algorithm of OpenPGP keys. This enables Secret-Key
+                Packets to hold symmetric key material.
+            </t>
+            <t>
+                The specific symmetric algorithm is determined by the first field in the Algorithm-Specific Fields of a
+                symmetric key. This document extends section 5.6 to include symmetric keys:
+            </t>
+            <t>
+                "5.6.7 Algorithm-Specific Part for AEAD Keys
+            </t>
+            <t>
+                The public key information is composed of:
+            </t>
+            <ul spacing="normal">
+                <li>A one-octet symmetric cipher</li>
+                <li>A SHA2-256 hash of the first 32 octets of the private key fields</li>
+            </ul>
+            <t>
+                The private key information is composed of:
+            </t>
+            <ul spacing="normal">
+                <li>A 32 octet random value used exclusively to generate the public hash value</li>
+                <li>Symmetric key material of appropriate length for the chosen cipher"</li>
+            </ul>
+             <t>
+                "5.6.8 Algorithm-Specific Part for HMAC Keys
+            </t>
+            <t>
+                The public key information is composed of:
+            </t>
+            <ul spacing="normal">
+                <li>A one-octet hash algorithm</li>
+                <li>A SHA2-256 hash of the first 32-octet value of the private key fields</li>
+            </ul>
+            <t>
+                The private key information is composed of:
+            </t>
+            <ul spacing="normal">
+                <li>A 32-octet random value used exclusively to generate the public hash value</li>
+                <li>Symmetric key material of appropriate length for the chosen cipher"</li>
+            </ul>
+            <t>
+                As the secret key material is required for all cryptographic operations with symmetric keys, implementations
+                SHOULD NOT export Public-Key Packets from Secret-Key Packets holding symmetric key material.
+            </t>
+        </section>
+        <section numbered="true" toc="default">
+            <name>AEAD encryption of session keys</name>
+            <t>
+                Reuse Public-Key Encrypted Session Key Packets to hold symmetrically encrypted session keys.
+            </t>
+
+            <t>
+                This document extends section "5.1.  Public-Key Encrypted Session Key Packets (Tag 1)" to append the
+                following to the list of Algorithm-Specific Fields definitions:
+            </t>
+            <t>
+                "Algorithm-Specific Fields for symmetric AEAD encryption:
+            </t>
+            <ul spacing="normal">
+                <li>A one-octet AEAD algorithm</li>
+                <li>A starting initialization vector of size specified by AEAD mode</li>
+                <li>A symmetric key encryption of "m" performed using the selected symmetric-key cipher
+      operating in the given AEAD mode, prefixed with a one-octet length "</li>
+            </ul>
+            <t>
+                For backwards compatibility, the value "m" is derived from the session key as is specified for
+                existing algorithms, except that the PKCS #1.5 padding step is omitted.
+            </t>
+            <t>
+                To reflect the usage of Public-Key Encrypted Session Key Packets (Tag 1) for storing AEAD encrypted
+                session keys, the name of Tag 1 packets is changed to Key Encrypted Session Key Packets (Tag 1).
+            </t>
+        </section>
+        <section numbered="true" toc="default">
+            <name>HMAC-based signature packets</name>
+            <t>Save HMAC tags as digital signatures in Signature Packet (Tag 2) packets.</t>
+
+            <t>This document extends section "5.2.3.  Version 4 and 5 Signature Packet Formats" to include:</t>
+            <t>
+                "Algorithm-Specific Fields for HMAC signatures:
+            </t>
+            <ul spacing="normal">
+                <li>An authentication tag of appropriate length for the hash function prefixed by a one octet length"</li>
+            </ul>
+
+            <t>
+                Although not required by HMAC, to maintain compatibility with existing signature implementations,
+                no changes are made to section "5.2.4. Computing Signatures". HMAC tags MUST be produced from
+                appropriately hashed data.
+            </t>
+    </section>
+        <section>
+            <name>Other changes</name>
+            <t>
+                To adapt to the addition of symmetric encryption, in Section 2.1. "Confidentiality via Encryption"
+                read "To protect the key, it is encrypted with the receiver's public key" as "To protect the key, it is
+                encrypted with the receiver's public key or a persistent symmetric key" and " 3.  The session key is
+                encrypted using each recipient's public key" as " 3.  The session key is encrypted using each
+                recipient's public key or a persistent symmetric key".
+            </t>
+            <t>
+                To adapt to the addition of MACs, 2.2. "Authentication via Digital Signature" read "The digital
+                signature uses a hash code or message digest algorithm, and a public-key signature algorithm" as "The
+                digital signature uses a hash code or message digest algorithm, and a public-key signature algorithm or a
+                message authentication code algorithm" and "3.  The sending software generates a signature from the hash
+                code using the sender's private key" as "3.  The sending software generates a signature from the hash code
+                using the sender's private key or a persistent symmetric key".
+            </t>
+        </section>
+        <section anchor="Security" numbered="true" toc="default">
+      <name>Security Considerations</name>
+            <t>Security considerations are discussed throughout the document where appropriate. </t>
+        </section>
+    </middle>
+    <back>
+        <references>
+            <name>References</name>
+            <references>
+                <name>Normative References</name>
+                <!--?rfc include="http://xml.resource.org/public/rfc/bibxml/reference.I-D.narten-iana-considerations-rfc2434bis.xml?-->
+                <xi:include href="https://xml2rfc.ietf.org/public/rfc/bibxml/reference.RFC.2119.xml"/>
+
+                <xi:include href="https://xml2rfc.ietf.org/public/rfc/bibxml/reference.RFC.4880.xml"/>
+                <xi:include href="https://xml2rfc.tools.ietf.org/public/rfc/bibxml-ids/reference.I-D.draft-ietf-openpgp-rfc4880bis-10.xml"/>
+            </references>
+            <references>
+                <name>Informative References</name>
+                    <reference anchor="Grover" target="https://arxiv.org/abs/quant-ph/9706033">
+                        <front>
+                            <title>Quantum mechanics helps in searching for a needle in a haystack</title>
+                            <seriesInfo name="DOI" value="10.1103/PhysRevLett.79.325"/>
+                            <author initials="L." surname="Grover" fullname="Lov K">
+                                <organization/>
+                            </author>
+                            <date year="1997"/>
+                            <abstract>
+                                <t>Quantum mechanics can speed up a range of search applications over unsorted data.
+                                    For example imagine a phone directory containing N names arranged in completely random
+                                    order. To find someone's phone number with a probability of 50%, any classical algorithm
+                                    (whether deterministic or probabilistic) will need to access the database a minimum of
+                                    O(N) times. Quantum mechanical systems can be in a superposition of states and
+                                    simultaneously examine multiple names. By properly adjusting the phases of various
+                                    operations, successful computations reinforce each other while others interfere
+                                    randomly. As a result, the desired phone number can be obtained in only O(sqrt(N))
+                                    accesses to the database.
+                                </t>
+                            </abstract>
+                        </front>
+                    </reference>
+                    <reference anchor="Shor" target="http://dx.doi.org/10.1137/S0097539795293172">
+                        <front>
+                            <title>Polynomial-Time Algorithms for Prime Factorization and Discrete Logarithms on a Quantum Computer</title>
+                            <seriesInfo name="DOI" value="10.1137/s0097539795293172"/>
+                            <author initials="P." surname="Shor" fullname="Peter W.">
+                                <organization/>
+                            </author>
+                            <date year="1997" month="Oct"/>
+                            <abstract>
+                                <t>A digital computer is generally believed to be an efficient universal computing
+                                    device; that is, it is believed able to simulate any physical computing device
+                                    with an increase in computation time by at most a polynomial factor. This may
+                                    not be true when quantum mechanics is taken into consideration. This paper considers
+                                    factoring integers and finding discrete logarithms, two problems which are generally
+                                    thought to be hard on a classical computer and which have been used as the basis of
+                                    several proposed cryptosystems. Efficient randomized algorithms are given for these
+                                    two problems on a hypothetical quantum computer. These algorithms take a number of
+                                    steps polynomial in the input size, e.g., the number of digits of the integer to be
+                                    factored.
+                                </t>
+                            </abstract>
+                        </front>
+                    </reference>
+                    <reference anchor="NIST" target="https://csrc.nist.gov/projects/post-quantum-cryptography/post-quantum-cryptography-standardization">
+                        <front>
+                            <title>Post-Quantum Cryptography Standardization - Post-Quantum Cryptography: CSRC</title>
+                            <author initials="" surname="NIST" fullname="NIST" />
+                            <date year="2020"/>
+                        </front>
+                    </reference>
+            </references>
+        </references>
+    </back>
+</rfc>
